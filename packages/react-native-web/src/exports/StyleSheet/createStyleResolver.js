@@ -28,23 +28,31 @@ import { STYLE_ELEMENT_ID, STYLE_GROUPS } from './constants';
 const emptyObject = {};
 
 export default function createStyleResolver() {
-  let inserted, sheet, lookup;
+  let inserted, sheets, lookup;
   const resolved = { css: {}, ltr: {}, rtl: {}, rtlNoSwap: {} };
+  const savedRules = [];
 
   const init = () => {
     inserted = { css: {}, ltr: {}, rtl: {}, rtlNoSwap: {} };
-    sheet = createOrderedCSSStyleSheet(createCSSStyleSheet(STYLE_ELEMENT_ID));
+    sheets = [createOrderedCSSStyleSheet(createCSSStyleSheet(STYLE_ELEMENT_ID))];
     lookup = {
       byClassName: {},
       byProp: {}
     };
-    modality(rule => sheet.insert(rule, STYLE_GROUPS.modality));
+    modality(rule => insert(rule, STYLE_GROUPS.modality));
     initialRules.forEach(rule => {
-      sheet.insert(rule, STYLE_GROUPS.reset);
+      insert(rule, STYLE_GROUPS.reset);
     });
   };
 
   init();
+
+  function insert(style, group) {
+    sheets.forEach(function(sheet) {
+      sheet.insert(style, group);
+    });
+    savedRules.push({ style: style, group: group });
+  }
 
   function addToLookup(className, prop, value) {
     if (!lookup.byProp[prop]) {
@@ -71,7 +79,7 @@ export default function createStyleResolver() {
         addToLookup(identifier, property, value);
         rules.forEach(rule => {
           const group = STYLE_GROUPS.custom[property] || STYLE_GROUPS.atomic;
-          sheet.insert(rule, group);
+          insert(rule, group);
         });
       });
       inserted[dir][id] = true;
@@ -95,7 +103,7 @@ export default function createStyleResolver() {
           if (inserted.css[identifier] == null && resolved.css[identifier] != null) {
             const item = resolved.css[identifier];
             item.rules.forEach(rule => {
-              sheet.insert(rule, item.group);
+              insert(rule, item.group);
             });
             inserted.css[identifier] = true;
           }
@@ -241,7 +249,7 @@ export default function createStyleResolver() {
                   const { identifier, rules } = a[key];
                   props.classList.push(identifier);
                   rules.forEach(rule => {
-                    sheet.insert(rule, STYLE_GROUPS.atomic);
+                    insert(rule, STYLE_GROUPS.atomic);
                   });
                 });
               } else {
@@ -271,7 +279,7 @@ export default function createStyleResolver() {
 
   return {
     getStyleSheet() {
-      const textContent = sheet.getTextContent();
+      const textContent = sheets[0].getTextContent();
       // Reset state on the server so critical css is always the result
       if (!canUseDOM) {
         init();
@@ -297,8 +305,14 @@ export default function createStyleResolver() {
       return result;
     },
     resolve,
-    sheet,
-    resolveWithNode
+    sheet: sheets[0],
+    resolveWithNode,
+    addSheet: function(styleNode) {
+      const orderedSheet = createOrderedCSSStyleSheet(styleNode);
+      sheets.push(orderedSheet);
+      savedRules.forEach(x => orderedSheet.insert(x.style, x.group));
+      return orderedSheet;
+    }
   };
 }
 

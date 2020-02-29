@@ -8,6 +8,7 @@
  */
 
 import { canUseDOM } from 'fbjs/lib/ExecutionEnvironment';
+import styleResolver from './styleResolver';
 import StyleSheet from './StyleSheet';
 
 // allow original component styles to be inspected in React Dev Tools
@@ -15,4 +16,5 @@ if (canUseDOM && window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
   window.__REACT_DEVTOOLS_GLOBAL_HOOK__.resolveRNStyle = StyleSheet.flatten;
 }
 
+StyleSheet.styleResolver = styleResolver;
 export default StyleSheet;
