@@ -15,7 +15,7 @@
     "fmt": "prettier --write \"**/*.js\"",
     "jest": "jest --config ./scripts/jest/config.js",
     "lint": "yarn lint:check --fix",
-    "lint:check": "eslint packages scripts",
+    "lint:check": "eslint --no-eslint-rc -c .eslintrc packages scripts",
     "precommit": "lint-staged",
     "prepare": "yarn test && yarn compile && yarn compile:commonjs",
     "release": "node ./scripts/release/publish.js",
